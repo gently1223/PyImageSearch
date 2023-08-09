@@ -19,7 +19,7 @@ DIGITS_LOOKUP = {
 }
 
 # load the example image
-image = cv2.imread("IMG_2316.jpg")
+image = cv2.imread("example.jpg")
 # pre-process the image by resizing it, converting it to
 # graycale, blurring it, and computing an edge map
 image = imutils.resize(image, height=500)
@@ -30,21 +30,25 @@ edged = cv2.Canny(blurred, 50, 200, 255)
 # find contours in the edge map, then sort them by their
 # size in descending order
 cnts = cv2.findContours(edged.copy(), cv2.RETR_EXTERNAL,
-	cv2.CHAIN_APPROX_SIMPLE)
+                        cv2.CHAIN_APPROX_SIMPLE)
+
 cnts = imutils.grab_contours(cnts)
+
 cnts = sorted(cnts, key=cv2.contourArea, reverse=True)
 displayCnt = None
+
 # loop over the contours
 for c in cnts:
-	# approximate the contour
-	peri = cv2.arcLength(c, True)
-	approx = cv2.approxPolyDP(c, 0.02 * peri, True)
-	# if the contour has four vertices, then we have found
-	# the thermostat display
-	if len(approx) == 4:
-		displayCnt = approx
-		break
-	
+    # approximate the contour
+    peri = cv2.arcLength(c, True)
+    approx = cv2.approxPolyDP(c, 0.02 * peri, True)
+
+    # if the contour has four vertices, then we have found
+    # the thermostat display
+    if len(approx) == 4:
+        displayCnt = approx
+        break
+
 # extract the thermostat display, apply a perspective transform
 # to it
 warped = four_point_transform(gray, displayCnt.reshape(4, 2))
@@ -54,27 +58,30 @@ output = four_point_transform(image, displayCnt.reshape(4, 2))
 # operations to cleanup the thresholded image
 thresh = cv2.threshold(warped, 0, 255,
 	cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
-kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (1, 5))
-thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (4, 4))
+morphology = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
 
 # find contours in the thresholded image, then initialize the
 # digit contours lists
 cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
-	cv2.CHAIN_APPROX_SIMPLE)
+                        cv2.CHAIN_APPROX_SIMPLE)
 cnts = imutils.grab_contours(cnts)
 digitCnts = []
+
 # loop over the digit area candidates
 for c in cnts:
-	# compute the bounding box of the contour
-	(x, y, w, h) = cv2.boundingRect(c)
-	# if the contour is sufficiently large, it must be a digit
-	if w >= 15 and (h >= 30 and h <= 40):
-		digitCnts.append(c)
-		
+    # compute the bounding box of the contour
+    (x, y, w, h) = cv2.boundingRect(c)
+
+    # if the contour is sufficiently large, it must be a digit
+    if w >= 10 and (h >= 7 and h <= 40):
+        digitCnts.append(c)
+
 # sort the contours from left-to-right, then initialize the
 # actual digits themselves
 digitCnts = contours.sort_contours(digitCnts,
-	method="left-to-right")[0]
+                                   method="left-to-right")[0]
+
 digits = []
 
 # loop over each of the digits
@@ -98,8 +105,8 @@ for c in digitCnts:
 		((0, h - dH), (w, h))	# bottom
 	]
 	on = [0] * len(segments)
-
-	# loop over the segments
+        
+    # loop over the segments
 	for (i, ((xA, yA), (xB, yB))) in enumerate(segments):
 		# extract the segment ROI, count the total number of
 		# thresholded pixels in the segment, and then compute
@@ -117,7 +124,7 @@ for c in digitCnts:
 	cv2.rectangle(output, (x, y), (x + w, y + h), (0, 255, 0), 1)
 	cv2.putText(output, str(digit), (x - 10, y - 10),
 		cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 255, 0), 2)
-	
+
 # display the digits
 print(u"{}{}.{} \u00b0C".format(*digits))
 cv2.imshow("Input", image)
