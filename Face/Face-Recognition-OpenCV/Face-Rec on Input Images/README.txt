@@ -1,0 +1,3 @@
+- Training images are stored in "training-data" folder, each folder represents a specific person 
+- Test images stored in "test-data" folder will be processed automatically
+- Run "OpenCV-Face-Recognition-Python.py" to check the result
